@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dữ liệu quan trắc</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chart-container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .chart-box {
+      width: 48%;
+      height: 400px;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #exportBtn {
+      padding: 10px 20px;
+      background-color: green;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #exportBtn:hover {
+      background-color: darkgreen;
+    }
+
+    .address {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h2>Dữ liệu quan trắc</h2>
+    <button id="exportBtn">📤 Xuất Excel</button>
+  </div>
+
+  <div class="address" id="addressDisplay">📍 Địa điểm: ...</div>
+
+  <div class="chart-container">
+    <div class="chart-box">
+      <h3>Nhiệt độ (°C)</h3>
+      <canvas id="temperatureChart"></canvas>
+    </div>
+    <div class="chart-box">
+      <h3>Độ mặn (‰)</h3>
+      <canvas id="salinityChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const temperatureCtx = document.getElementById('temperatureChart').getContext('2d');
+    const salinityCtx = document.getElementById('salinityChart').getContext('2d');
+    const addressDisplay = document.getElementById('addressDisplay');
+
+    let tempChart, salChart;
+
+    function formatTime(isoString) {
+      const d = new Date(isoString);
+      return `${d.toLocaleTimeString()} ${d.toLocaleDateString()}`;
+    }
+
+    async function fetchData() {
+      const res = await fetch('/data');
+      const data = await res.json();
+
+      const last10 = data.slice(-10);
+      const labels = last10.map(d => formatTime(d.timestamp));
+      const tempData = last10.map(d => d.temperature);
+      const salinityData = last10.map(d => d.salinity);
+
+      const lastLocation = last10.length > 0 ? last10[last10.length - 1].location : 'Không có dữ liệu';
+      addressDisplay.textContent = "📍 Địa điểm: " + lastLocation;
+
+      if (!tempChart) {
+        tempChart = new Chart(temperatureCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Nhiệt độ (°C)',
+              data: tempData,
+              borderColor: 'red',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              tension: 0.3,
+              fill: true
+            }]
+          },
+          options: { scales: { y: { beginAtZero: false } } }
+        });
+      } else {
+        tempChart.data.labels = labels;
+        tempChart.data.datasets[0].data = tempData;
+        tempChart.update();
+      }
+
+      if (!salChart) {
+        salChart = new Chart(salinityCtx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Độ mặn (‰)',
+              data: salinityData,
+              borderColor: 'blue',
+              backgroundColor: 'rgba(54, 162, 235, 0.2)',
+              tension: 0.3,
+              fill: true
+            }]
+          },
+          options: { scales: { y: { beginAtZero: false } } }
+        });
+      } else {
+        salChart.data.labels = labels;
+        salChart.data.datasets[0].data = salinityData;
+        salChart.update();
+      }
+    }
+
+    // Tải dữ liệu mỗi 5 giây
+    fetchData();
+    setInterval(fetchData, 5000);
+
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      window.location.href = '/export';
+    });
+  </script>
+</body>
+</html>
