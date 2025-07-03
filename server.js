@@ -14,12 +14,20 @@ let allData = [];
 // Nhận dữ liệu từ ESP32
 app.post('/data', (req, res) => {
     const { temperature, salinity, location, timestamp } = req.body;
-    if (!temperature || !salinity || !location || !timestamp) {
+
+    // ✅ Sửa lại điều kiện kiểm tra để chấp nhận salinity = 0
+    if (
+        temperature === undefined ||
+        salinity === undefined ||
+        location === undefined ||
+        timestamp === undefined
+    ) {
         return res.status(400).send('Thiếu trường dữ liệu');
     }
+
     const entry = { temperature, salinity, location, timestamp };
     allData.push(entry);
-    console.log("Nhận dữ liệu:", entry);
+    console.log("✅ Nhận dữ liệu:", entry);
     res.send('Data received');
 });
 
@@ -44,5 +52,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-    console.log(`Server đang chạy tại http://localhost:${port}`);
+    console.log(`🚀 Server đang chạy tại http://localhost:${port}`);
 });
